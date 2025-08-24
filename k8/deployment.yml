@@ -1,21 +1,39 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: nginx-deployment
+  name: rdicidr
+  namespace: production
   labels:
-    app: nginx
+    app: rdicidr
 spec:
+  # obrigatório para StatefulSet
+  serviceName: rdicidr-headless
   replicas: 3
   selector:
     matchLabels:
-      app: nginx
+      app: rdicidr
   template:
     metadata:
       labels:
-        app: nginx
+        app: rdicidr
     spec:
       containers:
-      - name: nginx
-        image: nginx:1.14.2
-        ports:
-        - containerPort: 80
+        - name: web
+          image: rdicidr:0.1.0        # imagem que tu vai buildar do teu app
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets   # Secret definido em secret.yml
+                  key: MY_SECRET
+          readinessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
