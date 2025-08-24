@@ -1,0 +1,47 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'codebase/rdicidr-0.1.0/**'
+      - '.github/workflows/**'
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: codebase/rdicidr-0.1.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 15.x (conforme engines do projeto)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '15.x'
+          cache: npm
+          cache-dependency-path: codebase/rdicidr-0.1.0/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # instalar eslint só para o ambiente da CI (sem mudar pkg.json)
+      - name: Adicionar ESLint no ambiente
+        run: npm i -g eslint@7.32.0
+
+      - name: Linter (ESLint)
+        run: npm run lint
+
+      # Aqui sobrescrevemos o "-c" do script com "--write"
+      - name: Formatter (Prettier --write)
+        run: npm run prettier -- --write
+
+      - name: Testes (Jest via react-scripts)
+        run: CI=true npm test -- --watchAll=false
+
+      - name: Build (React build)
+        run: npm run build
